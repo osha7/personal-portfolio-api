@@ -38,6 +38,12 @@ gem "rack-cors"
 gem "ruby-openai"
 gem 'dotenv-rails', '~> 2.1', '>= 2.1.1'
 
+gem 'http', '~> 3.0'
+gem 'json', '~> 2.6', '>= 2.6.3'
+
+gem 'annotate'
+gem 'attr_encrypted', '~> 4.0.0'
+
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ]

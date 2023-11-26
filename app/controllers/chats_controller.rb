@@ -1,5 +1,7 @@
 class ChatsController < ApplicationController
   before_action :set_chat, only: %i[ show update destroy ]
+  require "http"
+  require "json"
 
   # GET /chats
   def index
@@ -16,6 +18,42 @@ class ChatsController < ApplicationController
   # POST /chats
   def create
     @chat = Chat.new(chat_params)
+    # only assign a new token if not present - FIX THIS
+    @chat.encrypted_token = SecureRandom.hex(16)
+
+    # ------------------------------------------------
+
+    request_headers_hash = {
+      "Authorization" => "Bearer #{ENV['OPEN_API_KEY']}",
+      "content-type" => "application/json"
+    }
+
+    request_body_hash = {
+      # "temperature" => ,
+      "model" => "gpt-4",
+      "messages" => [
+        {
+          "role" => "system", # system prompt (optional)
+          "content" => "You are a helpful assistant who talks like you're from chicago."
+        },
+        {
+          "role" => "#{@chat.role}",
+          "content" => "#{@chat.content}"
+        },
+      ]
+    }
+
+    request_body_json = JSON.generate(request_body_hash)
+
+    raw_response = HTTP.headers(request_headers_hash).post(
+      "https://api.openai.com/v1/chat/completions",
+      :body => request_body_json
+    ).to_s
+
+    parsed_response = JSON.parse(raw_response)
+
+    pp parsed_response
+    # ------------------------------------------------
 
     if @chat.save
       render json: @chat, status: :created, location: @chat
