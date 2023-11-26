@@ -10,6 +10,15 @@ class ChatsController < ApplicationController
     render json: @chats
   end
 
+  def find_by_token
+    pp 'hitting correct action'
+    pp params["token"]
+    @chats_by_token = Chat.where({:encrypted_token => params["token"]})
+    pp @chats_by_token.count
+
+    render json: @chats_by_token
+  end
+
   # GET /chats/1
   def show
     render json: @chat
@@ -19,7 +28,11 @@ class ChatsController < ApplicationController
   def create
     @chat = Chat.new(chat_params)
     # only assign a new token if not present - FIX THIS
-    @chat.encrypted_token = SecureRandom.hex(16)
+    if !@chat.encrypted_token
+      @chat.encrypted_token = SecureRandom.hex(16)
+    end
+
+    if @chat.save
 
     # ------------------------------------------------
 
@@ -52,10 +65,13 @@ class ChatsController < ApplicationController
 
     parsed_response = JSON.parse(raw_response)
 
-    pp parsed_response
+    # pp parsed_response["choices"][0]["message"]["content"]
+
+    chat = Chat.new({:role => "assistant", :content => parsed_response["choices"][0]["message"]["content"], :encrypted_token => @chat.encrypted_token})
+    chat.save
+
     # ------------------------------------------------
 
-    if @chat.save
       render json: @chat, status: :created, location: @chat
     else
       render json: @chat.errors, status: :unprocessable_entity
@@ -84,6 +100,6 @@ class ChatsController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def chat_params
-      params.require(:chat).permit(:role, :content)
+      params.require(:chat).permit(:role, :content, :encrypted_token)
     end
 end

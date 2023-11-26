@@ -5,6 +5,7 @@ Rails.application.routes.draw do
 
   root to: "static#home"
   
+  get "/chats/:token" => "chats#find_by_token"
   resources :chats
 
 end
