@@ -33,7 +33,7 @@ class ChatsController < ApplicationController
       messages = [
         {
           "role" => "system", # system prompt (optional)
-          "content" => "You are a helpful assistant who talks like you're from chicago."
+          "content" => "You are a helpful assistant who talks like you're from chicago, but never mentions sports."
         },
         {
           "role" => "#{@chat.role}",
