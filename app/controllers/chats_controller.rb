@@ -11,11 +11,7 @@ class ChatsController < ApplicationController
   end
 
   def find_by_token
-    pp 'hitting correct action'
-    pp params["token"]
     @chats_by_token = Chat.where({:encrypted_token => params["token"]})
-    pp @chats_by_token.count
-
     render json: @chats_by_token
   end
 
@@ -27,24 +23,14 @@ class ChatsController < ApplicationController
   # POST /chats
   def create
     @chat = Chat.new(chat_params)
-    # only assign a new token if not present - FIX THIS
-    if !@chat.encrypted_token
-      @chat.encrypted_token = SecureRandom.hex(16)
-    end
+    # only assign a new token if not present - update this to send to FE and assign to user in local storage if necessary
+    # if !@chat.encrypted_token
+    #   @chat.encrypted_token = SecureRandom.hex(16)
+    # end
 
     if @chat.save
 
-    # ------------------------------------------------
-
-    request_headers_hash = {
-      "Authorization" => "Bearer #{ENV['OPEN_API_KEY']}",
-      "content-type" => "application/json"
-    }
-
-    request_body_hash = {
-      # "temperature" => ,
-      "model" => "gpt-4",
-      "messages" => [
+      messages = [
         {
           "role" => "system", # system prompt (optional)
           "content" => "You are a helpful assistant who talks like you're from chicago."
@@ -54,23 +40,39 @@ class ChatsController < ApplicationController
           "content" => "#{@chat.content}"
         },
       ]
-    }
 
-    request_body_json = JSON.generate(request_body_hash)
+      relevent_chats = Chat.where({:encrypted_token => @chat.encrypted_token})
 
-    raw_response = HTTP.headers(request_headers_hash).post(
-      "https://api.openai.com/v1/chat/completions",
-      :body => request_body_json
-    ).to_s
+      relevent_chats.each do |chat|
+        messages.push({"role" => chat.role, "content" => chat.content})
+      end
 
-    parsed_response = JSON.parse(raw_response)
+      # ---Call to OpenAI-----------------------------------
 
-    # pp parsed_response["choices"][0]["message"]["content"]
+      request_headers_hash = {
+        "Authorization" => "Bearer #{ENV['OPEN_API_KEY']}",
+        "content-type" => "application/json"
+      }
 
-    chat = Chat.new({:role => "assistant", :content => parsed_response["choices"][0]["message"]["content"], :encrypted_token => @chat.encrypted_token})
-    chat.save
+      request_body_hash = {
+        # "temperature" => ,
+        "model" => "gpt-4",
+        "messages" => messages
+      }
 
-    # ------------------------------------------------
+      request_body_json = JSON.generate(request_body_hash)
+
+      raw_response = HTTP.headers(request_headers_hash).post(
+        "https://api.openai.com/v1/chat/completions",
+        :body => request_body_json
+      ).to_s
+
+      parsed_response = JSON.parse(raw_response)
+
+      chat = Chat.new({:role => "assistant", :content => parsed_response["choices"][0]["message"]["content"], :encrypted_token => @chat.encrypted_token})
+      chat.save
+
+      # ------------------------------------------------
 
       render json: @chat, status: :created, location: @chat
     else
