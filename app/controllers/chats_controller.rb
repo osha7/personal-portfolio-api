@@ -104,4 +104,5 @@ class ChatsController < ApplicationController
     def chat_params
       params.require(:chat).permit(:role, :content, :encrypted_token)
     end
+    
 end
